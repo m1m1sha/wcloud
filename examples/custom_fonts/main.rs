@@ -1,6 +1,6 @@
 use image::{ImageFormat, Rgba};
 use nanorand::{Rng, WyRand};
-use palette::{Hsl, IntoColor, Pixel, Srgb};
+use palette::{Hsl, IntoColor, Srgb};
 use wcloud::{Tokenizer, Word, WordCloud, WordCloudSize};
 
 use std::time::Instant;
@@ -28,7 +28,7 @@ fn main() {
         let col = Hsl::new(0.0, 0.0, lightness as f32 / 100.0);
         let rgb: Srgb = col.into_color();
 
-        let raw: [u8; 3] = rgb.into_format().into_raw();
+        let raw: [u8; 3] = rgb.into_format().into();
 
         Rgba([raw[0], raw[1], raw[2], 1])
     };

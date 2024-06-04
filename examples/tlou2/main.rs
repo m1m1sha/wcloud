@@ -1,6 +1,6 @@
 use image::{ImageFormat, Rgba};
 use nanorand::WyRand;
-use palette::{Hsl, IntoColor, Pixel, Srgb};
+use palette::{Hsl, IntoColor, Srgb};
 use std::collections::HashSet;
 use wcloud::{Tokenizer, Word, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
 
@@ -73,7 +73,7 @@ fn main() {
         let col = Hsl::new(136.0, saturation, 0.5);
         let rgb: Srgb = col.into_color();
 
-        let raw: [u8; 3] = rgb.into_format().into_raw();
+        let raw: [u8; 3] = rgb.into_format().into();
 
         Rgba([raw[0], raw[1], raw[2], 1])
     };

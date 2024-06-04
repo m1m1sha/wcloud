@@ -1,6 +1,6 @@
 use image::Rgba;
 use nanorand::{Rng, WyRand};
-use palette::{Hsl, IntoColor, Pixel, Srgb};
+use palette::{Hsl, IntoColor, Srgb};
 use std::collections::HashSet;
 use std::fs;
 use wcloud::{sat, Tokenizer, Word, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
@@ -44,7 +44,7 @@ pub fn wcloud(c: &mut Criterion) {
                 let col = Hsl::new(0.0, 0.0, lightness as f32 / 100.0);
                 let rgb: Srgb = col.into_color();
 
-                let raw: [u8; 3] = rgb.into_format().into_raw();
+                let raw: [u8; 3] = rgb.into_format().into();
 
                 Rgba([raw[0], raw[1], raw[2], 1])
             };

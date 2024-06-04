@@ -235,7 +235,7 @@ fn main() {
         let height = word_cloud_image.height();
 
         encoder
-            .write_image(&word_cloud_image, width, height, ColorType::Rgb8)
+            .write_image(&word_cloud_image, width, height, ColorType::Rgb8.into())
             .expect("Failed to save word_cloud image");
     }
 }
