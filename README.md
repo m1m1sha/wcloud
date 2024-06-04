@@ -46,13 +46,13 @@ fn main() {
         some sea breeze boundaries and cold fronts.
     "#;
 
-    let wordcloud = WordCloud::default()
+    let word_cloud = WordCloud::default()
         .with_rng_seed(0);
 
     let size = WordCloudSize::FromDimensions { width: 1000, height: 500 };
-    let wordcloud_image = wordcloud.generate_from_text(text, size, 1.0);
+    let word_cloud_image = word_cloud.generate_from_text(text, size, 1.0);
 
-    wordcloud_image.save("cloud.png")
+    word_cloud_image.save("cloud.png")
         .expect("Unable to save image");
 }
 ```

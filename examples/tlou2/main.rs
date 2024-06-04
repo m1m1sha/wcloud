@@ -1,38 +1,32 @@
-use std::collections::HashSet;
-use wcloud::{Tokenizer, WordCloud, WordCloudSize, Word, DEFAULT_EXCLUDE_WORDS_TEXT};
-use nanorand::{Rng, WyRand};
-use palette::{Pixel, Srgb, Hsl, IntoColor};
 use image::{ImageFormat, Rgba};
+use nanorand::{Rng, WyRand};
+use palette::{Hsl, IntoColor, Pixel, Srgb};
+use std::collections::HashSet;
+use wcloud::{Tokenizer, Word, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
 
 use std::time::Instant;
 
 fn main() {
+    let script_text = include_str!("tlou2.txt").replace("HAN", "Han").replace("LUKE'S", "Luke");
 
-    let script_text = include_str!("tlou2.txt")
-        .replace("HAN", "Han")
-        .replace("LUKE'S", "Luke");
-
-    let mut filter = DEFAULT_EXCLUDE_WORDS_TEXT.lines()
-        .collect::<HashSet<_>>();
+    let mut filter = DEFAULT_EXCLUDE_WORDS_TEXT.lines().collect::<HashSet<_>>();
 
     let exclude_words = [
-        "oh", "alright", "okay", "gonna", "go", "c'mon", "hey", "em",
-        "maybe", "uh", "Well", "ya", "yeah", "let", "see", "didn",
-        "re", "s", "come", "got", "ll", "right", "ve", "don", "t", "C"
+        "oh", "alright", "okay", "gonna", "go", "c'mon", "hey", "em", "maybe", "uh", "Well", "ya",
+        "yeah", "let", "see", "didn", "re", "s", "come", "got", "ll", "right", "ve", "don", "t",
+        "C",
     ];
 
     for word in exclude_words {
         filter.insert(word);
     }
 
-    let tokenizer = Tokenizer::default()
-        .with_max_words(1000)
-        .with_filter(filter)
-        .with_min_word_length(2);
+    let tokenizer =
+        Tokenizer::default().with_max_words(1000).with_filter(filter).with_min_word_length(2);
 
     let max_font_size = Some(150.0);
 
-    let wordcloud = WordCloud::default()
+    let word_cloud = WordCloud::default()
         .with_tokenizer(tokenizer)
         .with_word_margin(10)
         .with_min_font_size(20.0)
@@ -79,17 +73,16 @@ fn main() {
         let col = Hsl::new(136.0, saturation, 0.5);
         let rgb: Srgb = col.into_color();
 
-        let raw: [u8; 3] = rgb.into_format()
-            .into_raw();
+        let raw: [u8; 3] = rgb.into_format().into_raw();
 
         Rgba([raw[0], raw[1], raw[2], 1])
     };
 
     let now = Instant::now();
-    let wordcloud_image = wordcloud.generate_from_text_with_color_func(&script_text, mask, 1.0, color_func);
+    let word_cloud_image =
+        word_cloud.generate_from_text_with_color_func(&script_text, mask, 1.0, color_func);
 
     println!("Generated in {}ms", now.elapsed().as_millis());
 
-    wordcloud_image.save("examples/tlou2/tlou2.png")
-        .expect("Unable to save image");
+    word_cloud_image.save("examples/tlou2/tlou2.png").expect("Unable to save image");
 }

@@ -1,18 +1,16 @@
-use wcloud::{Tokenizer, WordCloud, WordCloudSize, Word};
-use nanorand::{Rng, WyRand};
-use palette::{Pixel, Srgb, Hsl, IntoColor};
 use image::{ImageFormat, Rgba};
+use nanorand::{Rng, WyRand};
+use palette::{Hsl, IntoColor, Pixel, Srgb};
+use wcloud::{Tokenizer, Word, WordCloud, WordCloudSize};
 
 use std::time::Instant;
 
 fn main() {
     let text = include_str!("computer_font_wikipedia.txt");
 
-    let tokenizer = Tokenizer::default()
-        .with_max_words(1000)
-        .with_repeat(true);
+    let tokenizer = Tokenizer::default().with_max_words(1000).with_repeat(true);
 
-    let wordcloud = WordCloud::default()
+    let word_cloud = WordCloud::default()
         .with_tokenizer(tokenizer)
         .with_rng_seed(0)
         .with_font_from_path("examples/custom_fonts/DroidSansMono.ttf".into());
@@ -30,17 +28,16 @@ fn main() {
         let col = Hsl::new(0.0, 0.0, lightness as f32 / 100.0);
         let rgb: Srgb = col.into_color();
 
-        let raw: [u8; 3] = rgb.into_format()
-            .into_raw();
+        let raw: [u8; 3] = rgb.into_format().into_raw();
 
         Rgba([raw[0], raw[1], raw[2], 1])
     };
 
     let now = Instant::now();
-    let wordcloud_image = wordcloud.generate_from_text_with_color_func(text, mask, 1.0, color_func);
+    let word_cloud_image =
+        word_cloud.generate_from_text_with_color_func(text, mask, 1.0, color_func);
 
     println!("Generated in {}ms", now.elapsed().as_millis());
 
-    wordcloud_image.save("examples/custom_fonts/cloud.png")
-        .expect("Unable to save image");
+    word_cloud_image.save("examples/custom_fonts/cloud.png").expect("Unable to save image");
 }

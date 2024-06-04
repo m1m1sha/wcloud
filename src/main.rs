@@ -1,18 +1,17 @@
-use std::io::{self, Read, stdout};
-use wcloud::{Tokenizer, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
-use clap::{Arg, App};
-use regex::Regex;
-use std::fs;
-use std::collections::HashSet;
-use image::codecs::png::PngEncoder;
-use image::{ImageEncoder, ColorType, Rgba};
 use ab_glyph::FontVec;
+use clap::{App, Arg};
 use csscolorparser::Color;
+use image::codecs::png::PngEncoder;
+use image::{ColorType, ImageEncoder, Rgba};
+use regex::Regex;
+use std::collections::HashSet;
+use std::fs;
+use std::io::{self, stdout, Read};
+use wcloud::{Tokenizer, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-
     let matches = App::new("wcloud")
         .version(VERSION)
         .author("isaackd <afrmtbl@gmail.com>")
@@ -102,9 +101,7 @@ fn main() {
     }
 
     if let Some(max_words) = matches.value_of("max-words") {
-        let max_words = max_words
-            .parse()
-            .expect("Max words must be a number greater than 0");
+        let max_words = max_words.parse().expect("Max words must be a number greater than 0");
         tokenizer = tokenizer.with_max_words(max_words);
     }
 
@@ -121,12 +118,12 @@ fn main() {
     }
 
     let exclude_words = if let Some(exclude_words_path) = matches.value_of("exclude-words") {
-        fs::read_to_string(exclude_words_path)
-            .unwrap_or_else(|_| panic!("Unable to read exclude words file \'{}\'", exclude_words_path))
-    }
-    else {
+        fs::read_to_string(exclude_words_path).unwrap_or_else(|_| {
+            panic!("Unable to read exclude words file \'{}\'", exclude_words_path)
+        })
+    } else {
         // Default exclude list taken from the WordCloud for Python project
-        // https://github.com/amueller/word_cloud/blob/master/wordcloud/stopwords
+        // https://github.com/amueller/word_cloud/blob/master/word_cloud/stopwords
         DEFAULT_EXCLUDE_WORDS_TEXT.to_string()
     };
 
@@ -135,19 +132,20 @@ fn main() {
         tokenizer = tokenizer.with_filter(exclude_words);
     }
 
-    let wordcloud_size = match matches.value_of("mask") {
+    let word_cloud_size = match matches.value_of("mask") {
         Some(mask_path) => {
-            let mask_image = image::open(mask_path).unwrap()
-                .into_luma8();
+            let mask_image = image::open(mask_path).unwrap().into_luma8();
 
             WordCloudSize::FromMask(mask_image)
-        },
+        }
         None => {
-            let width = matches.value_of("width")
+            let width = matches
+                .value_of("width")
                 .unwrap_or("400")
                 .parse()
                 .expect("Width must be an integer larger than 0");
-            let height = matches.value_of("height")
+            let height = matches
+                .value_of("height")
                 .unwrap_or("200")
                 .parse()
                 .expect("Height must be an integer larger than 0");
@@ -158,74 +156,60 @@ fn main() {
 
     let background_color = match matches.value_of("background-color") {
         Some(color) => {
-            let col = color.parse::<Color>()
-                .unwrap_or(Color::new(0.0, 0.0, 0.0, 1.0))
-                .to_rgba8();
+            let col = color.parse::<Color>().unwrap_or(Color::new(0.0, 0.0, 0.0, 1.0)).to_rgba8();
 
             Rgba(col)
         }
-        None => {
-            Rgba([0, 0, 0, 0])
-        }
+        None => Rgba([0, 0, 0, 0]),
     };
 
-    let mut wordcloud = WordCloud::default()
-        .with_tokenizer(tokenizer)
-        .with_background_color(background_color);
+    let mut word_cloud =
+        WordCloud::default().with_tokenizer(tokenizer).with_background_color(background_color);
 
     if let Some(margin) = matches.value_of("margin") {
-        wordcloud = wordcloud.with_word_margin(
-            margin.parse()
-                .expect("Margin must be a valid number")
-        );
+        word_cloud =
+            word_cloud.with_word_margin(margin.parse().expect("Margin must be a valid number"));
     }
 
     if let Some(min_font_size) = matches.value_of("min-font-size") {
-        wordcloud = wordcloud.with_min_font_size(
-            min_font_size.parse()
-                .expect("The minimum font size must be a valid number")
+        word_cloud = word_cloud.with_min_font_size(
+            min_font_size.parse().expect("The minimum font size must be a valid number"),
         );
     }
 
     if let Some(max_font_size) = matches.value_of("max-font-size") {
-        wordcloud = wordcloud.with_max_font_size(
-            Some(max_font_size.parse()
-                .expect("The maximum font size must be a valid number"))
-        );
+        word_cloud = word_cloud.with_max_font_size(Some(
+            max_font_size.parse().expect("The maximum font size must be a valid number"),
+        ));
     }
 
     if let Some(random_seed) = matches.value_of("random-seed") {
-        wordcloud = wordcloud.with_rng_seed(
-            random_seed.parse()
-                .expect("The random seed must be a valid number")
-        );
+        word_cloud = word_cloud
+            .with_rng_seed(random_seed.parse().expect("The random seed must be a valid number"));
     }
 
     if let Some(font_step) = matches.value_of("font-step") {
-        wordcloud = wordcloud.with_font_step(
-            font_step.parse()
-                .expect("The random seed must be a valid number")
-        );
+        word_cloud = word_cloud
+            .with_font_step(font_step.parse().expect("The random seed must be a valid number"));
     }
 
     if let Some(rotate_chance) = matches.value_of("rotate-chance") {
-        wordcloud = wordcloud.with_word_rotate_chance(
-            rotate_chance.parse()
-                .expect("The rotate chance must be a number between 0 and 1 (default: 0.10)")
+        word_cloud = word_cloud.with_word_rotate_chance(
+            rotate_chance
+                .parse()
+                .expect("The rotate chance must be a number between 0 and 1 (default: 0.10)"),
         );
     }
 
     if let Some(font_path) = matches.value_of("font") {
-        let font_file = fs::read(font_path)
-            .expect("Unable to read font file");
+        let font_file = fs::read(font_path).expect("Unable to read font file");
 
-        wordcloud = wordcloud.with_font(
-            FontVec::try_from_vec(font_file)
-                .expect("Font file may be invalid")
-        );
+        word_cloud = word_cloud
+            .with_font(FontVec::try_from_vec(font_file).expect("Font file may be invalid"));
     }
 
-    let scale = matches.value_of("scale")
+    let scale = matches
+        .value_of("scale")
         .unwrap_or("1.0")
         .parse()
         .expect("Scale must be a number between 0 and 100");
@@ -233,29 +217,25 @@ fn main() {
     let text = if let Some(text_file_path) = matches.value_of("text") {
         fs::read_to_string(text_file_path)
             .unwrap_or_else(|_| panic!("Unable to read text file \'{}\'", text_file_path))
-    }
-    else {
+    } else {
         let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer)
-            .expect("Unable to read stdin");
+        io::stdin().read_to_string(&mut buffer).expect("Unable to read stdin");
 
         buffer
     };
 
-
-    let wordcloud_image = wordcloud.generate_from_text(&text, wordcloud_size, scale);
+    let word_cloud_image = word_cloud.generate_from_text(&text, word_cloud_size, scale);
 
     if let Some(file_path) = matches.value_of("output") {
-        wordcloud_image.save(file_path)
-            .expect("Failed to save WordCloud image");
-    }
-    else {
+        word_cloud_image.save(file_path).expect("Failed to save WordCloud image");
+    } else {
         let encoder = PngEncoder::new(stdout());
 
-        let width = wordcloud_image.width();
-        let height = wordcloud_image.height();
+        let width = word_cloud_image.width();
+        let height = word_cloud_image.height();
 
-        encoder.write_image(&wordcloud_image, width, height, ColorType::Rgb8)
-            .expect("Failed to save wordcloud image");
+        encoder
+            .write_image(&word_cloud_image, width, height, ColorType::Rgb8)
+            .expect("Failed to save word_cloud image");
     }
 }

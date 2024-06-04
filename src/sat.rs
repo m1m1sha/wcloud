@@ -3,9 +3,9 @@
 use nanorand::{Rng, WyRand};
 
 #[cfg(feature = "visualize")]
-use std::io::{BufWriter, stdout, Write};
+use crate::visualize::{CheckRect, Message};
 #[cfg(feature = "visualize")]
-use crate::visualize::{Message, CheckRect};
+use std::io::{stdout, BufWriter, Write};
 
 #[derive(Debug, Copy, Clone)]
 pub struct Region {
@@ -27,7 +27,14 @@ pub struct Point {
     pub y: u32,
 }
 
-pub fn region_is_empty(table: &[u32], table_width: usize, x: usize, y: usize, width: usize, height: usize) -> bool {
+pub fn region_is_empty(
+    table: &[u32],
+    table_width: usize,
+    x: usize,
+    y: usize,
+    width: usize,
+    height: usize,
+) -> bool {
     let tl = table[y * table_width + x];
     let tr = table[y * table_width + x + width];
 
@@ -55,15 +62,20 @@ pub fn find_space_for_rect(
 
     for y in 0..max_y {
         for x in 0..max_x {
-            let empty = region_is_empty(table, table_width as usize, x as usize, y as usize, rect.width as usize, rect.height as usize);
+            let empty = region_is_empty(
+                table,
+                table_width as usize,
+                x as usize,
+                y as usize,
+                rect.width as usize,
+                rect.height as usize,
+            );
 
             #[cfg(feature = "visualize")]
             {
-                let serialized = serde_json::to_string(&Message::CheckRectMessage(CheckRect {
-                    x,
-                    y,
-                    empty,
-                })).unwrap();
+                let serialized =
+                    serde_json::to_string(&Message::CheckRectMessage(CheckRect { x, y, empty }))
+                        .unwrap();
                 writeln!(visualize_buf, "{}", serialized).unwrap();
             };
 
@@ -101,7 +113,14 @@ pub fn find_space_for_rect_masked(
     for y in 0..max_y {
         let (furthest_right, furthest_left) = skip_list[y as usize];
         for x in furthest_right..furthest_left.min(max_x as usize) {
-            let empty = region_is_empty(table, table_width as usize, x, y as usize, rect.width as usize, rect.height as usize);
+            let empty = region_is_empty(
+                table,
+                table_width as usize,
+                x,
+                y as usize,
+                rect.width as usize,
+                rect.height as usize,
+            );
 
             #[cfg(feature = "visualize")]
             {
@@ -109,7 +128,8 @@ pub fn find_space_for_rect_masked(
                     x: x as u32,
                     y,
                     empty,
-                })).unwrap();
+                }))
+                .unwrap();
                 writeln!(visualize_buf, "{}", serialized).unwrap();
             };
 
@@ -133,21 +153,16 @@ pub fn find_space_for_rect_masked(
 pub fn to_summed_area_table(table: &mut [u32], width: usize, start_row: usize) {
     let mut prev_row = vec![0; width];
 
-    table
-        .chunks_exact_mut(width)
-        .skip(start_row)
-        .for_each(|row| {
-            let mut sum = 0;
-            row.iter_mut()
-                .zip(prev_row.iter())
-                .for_each(|(el, prev_row_el)| {
-                    let original_value = *el;
-                    *el += sum + prev_row_el;
-                    sum += original_value;
-                });
-
-            prev_row.clone_from_slice(row);
+    table.chunks_exact_mut(width).skip(start_row).for_each(|row| {
+        let mut sum = 0;
+        row.iter_mut().zip(prev_row.iter()).for_each(|(el, prev_row_el)| {
+            let original_value = *el;
+            *el += sum + prev_row_el;
+            sum += original_value;
         });
+
+        prev_row.clone_from_slice(row);
+    });
 }
 
 #[cfg(test)]
@@ -168,9 +183,7 @@ mod tests {
         let mut table = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 200, 300, 400, 500, 600];
         to_summed_area_table(&mut table, 4, 0);
 
-        let expected = [
-            1, 3, 6, 10, 6, 14, 24, 36, 15, 33, 143, 355, 315, 733, 1343, 2155,
-        ];
+        let expected = [1, 3, 6, 10, 6, 14, 24, 36, 15, 33, 143, 355, 315, 733, 1343, 2155];
         assert_eq!(table, expected);
     }
     #[test]
@@ -178,9 +191,7 @@ mod tests {
         let mut table = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 100, 200, 300, 400, 500, 600];
         to_summed_area_table(&mut table, 8, 0);
 
-        let expected = [
-            1, 3, 6, 10, 15, 21, 28, 36, 10, 22, 125, 329, 634, 1040, 1547, 2155,
-        ];
+        let expected = [1, 3, 6, 10, 15, 21, 28, 36, 10, 22, 125, 329, 634, 1040, 1547, 2155];
         assert_eq!(table, expected);
     }
 }

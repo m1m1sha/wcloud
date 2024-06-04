@@ -1,5 +1,5 @@
-use ab_glyph::{point, Font, Glyph, Point, PxScale, ScaleFont, FontVec};
-use image::{GrayImage, Luma, Pixel, Rgb, Rgba, RgbaImage, RgbImage};
+use ab_glyph::{point, Font, FontVec, Glyph, Point, PxScale, ScaleFont};
+use image::{GrayImage, Luma, Pixel, Rgba, RgbaImage};
 
 #[derive(Clone, Debug)]
 pub struct GlyphData {
@@ -22,11 +22,7 @@ pub fn text_to_glyphs(text: &str, font: &FontVec, scale: PxScale) -> GlyphData {
         (max_x - min_x).ceil() as u32
     };
 
-    GlyphData {
-        glyphs,
-        width: glyphs_width,
-        height: glyphs_height,
-    }
+    GlyphData { glyphs, width: glyphs_width, height: glyphs_height }
 }
 
 pub fn draw_glyphs_to_rgba_buffer(
@@ -45,17 +41,20 @@ pub fn draw_glyphs_to_rgba_buffer(
 
             outlined.draw(|x, y, v| {
                 let (final_x, final_y) = if !rotate {
-                    (point.x as u32 + bounds.min.x as u32 + x, point.y as u32 + bounds.min.y as u32 + y)
-                }
-                else {
-                    (y + point.x as u32 + bounds.min.y as u32, width + point.y as u32 - bounds.min.x as u32 - x)
+                    (
+                        point.x as u32 + bounds.min.x as u32 + x,
+                        point.y as u32 + bounds.min.y as u32 + y,
+                    )
+                } else {
+                    (
+                        y + point.x as u32 + bounds.min.y as u32,
+                        width + point.y as u32 - bounds.min.x as u32 - x,
+                    )
                 };
 
                 let px = buffer.get_pixel_mut(final_x, final_y);
 
-                px.apply2(&pixel, |old, new| {
-                    ((v * new as f32) + (1.0 - v) * old as f32) as u8
-                });
+                px.apply2(&pixel, |old, new| ((v * new as f32) + (1.0 - v) * old as f32) as u8);
 
                 if px != &Rgba::from([0; 4]) {
                     px.0[3] = 0xFF;
@@ -84,10 +83,15 @@ pub fn draw_glyphs_to_gray_buffer(
                 }
 
                 let (final_x, final_y) = if !rotate {
-                    (point.x as u32 + bounds.min.x as u32 + x, point.y as u32 + bounds.min.y as u32 + y)
-                }
-                else {
-                    (y + point.x as u32 + bounds.min.y as u32, width + point.y as u32 - bounds.min.x as u32 - x)
+                    (
+                        point.x as u32 + bounds.min.x as u32 + x,
+                        point.y as u32 + bounds.min.y as u32 + y,
+                    )
+                } else {
+                    (
+                        y + point.x as u32 + bounds.min.y as u32,
+                        width + point.y as u32 - bounds.min.x as u32 - x,
+                    )
                 };
 
                 let px = buffer.get_pixel_mut(final_x, final_y);
