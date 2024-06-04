@@ -4,6 +4,7 @@ use palette::{Hsl, IntoColor, Srgb};
 use std::fs;
 use std::path::PathBuf;
 use std::process::exit;
+use svg::{Document, Node};
 use woff2::decode::{convert_woff2_to_ttf, is_woff2};
 
 mod text;
@@ -31,6 +32,27 @@ pub struct Word<'a> {
     pub index: usize,
 }
 
+#[derive(Default, PartialEq)]
+pub enum WordCloudImageType {
+    #[default]
+    Png,
+    Svg,
+}
+
+impl WordCloudImageType {
+    pub fn from(value: String) -> Self {
+        match value.as_str() {
+            "svg" => WordCloudImageType::Svg,
+            _ => WordCloudImageType::Png,
+        }
+    }
+}
+
+pub enum WordCloudImage {
+    Png(RgbaImage),
+    Svg(Document),
+}
+
 // TODO: Figure out a better way to structure this
 pub enum WordCloudSize {
     FromDimensions { width: u32, height: u32 },
@@ -48,6 +70,7 @@ pub struct WordCloud {
     word_rotate_chance: f64,
     relative_font_scaling: f32,
     rng_seed: Option<u64>,
+    image_type: WordCloudImageType,
 }
 
 impl Default for WordCloud {
@@ -65,6 +88,7 @@ impl Default for WordCloud {
             word_rotate_chance: 0.10,
             relative_font_scaling: 0.5,
             rng_seed: None,
+            image_type: WordCloudImageType::default(),
         }
     }
 }
@@ -136,7 +160,8 @@ impl WordCloud {
         scale: f32,
         background_color: Rgba<u8>,
         color_func: fn(&Word, &mut WyRand) -> Rgba<u8>,
-    ) -> RgbaImage {
+        image_type: WordCloudImageType,
+    ) -> WordCloudImage {
         // TODO: Refactor this so that we can fail earlier
         if !(0.0..=100.0).contains(&scale) {
             // TODO: Idk if this is good practice
@@ -149,6 +174,24 @@ impl WordCloud {
             (height as f32 * scale) as u32,
             background_color,
         );
+
+        use svg::node::element::Text;
+        use svg::Document;
+        let mut document = Document::new()
+            .set(
+                "style",
+                format!(
+                    "background-color: rgba({},{},{},{});",
+                    background_color.0[0],
+                    background_color.0[1],
+                    background_color.0[2],
+                    background_color.0[3]
+                ),
+            )
+            .set("viewBox", (0, 0, (width as f32 * scale) as u32, (height as f32 * scale) as u32))
+            .add(svg::node::element::Style::new(
+                "@font-face { font-family: font; src: url(./fonts/Ubuntu-B.ttf); }",
+            ));
 
         for mut word in word_positions.into_iter() {
             let col = color_func(&word, rng);
@@ -163,17 +206,41 @@ impl WordCloud {
                 word.glyphs = text::text_to_glyphs(word.text, word.font, word.font_size);
             }
 
-            text::draw_glyphs_to_rgba_buffer(
-                &mut final_image_buffer,
-                word.glyphs,
-                word.font,
-                word.position,
-                word.rotated,
-                col,
-            );
+            let mut text = Text::new(word.text)
+                .set("fill", format!("rgba({},{},{},{})", col.0[0], col.0[1], col.0[2], col.0[3]))
+                .set("font-family", "font")
+                .set("font-size", word.font_size.x.max(word.font_size.y))
+                .set("x", word.position.x)
+                .set("y", word.position.y);
+
+            if word.rotated {
+                text.assign(
+                    "transform",
+                    format!(
+                        "rotate(-90 {}, {}) translate(-{} {})",
+                        word.position.x, word.position.y, word.font_size.y, word.font_size.x,
+                    ),
+                );
+            }
+
+            document.append(text);
+
+            if image_type == WordCloudImageType::Png {
+                text::draw_glyphs_to_rgba_buffer(
+                    &mut final_image_buffer,
+                    word.glyphs,
+                    word.font,
+                    word.position,
+                    word.rotated,
+                    col,
+                );
+            }
         }
 
-        final_image_buffer
+        match image_type {
+            WordCloudImageType::Png => WordCloudImage::Png(final_image_buffer),
+            WordCloudImageType::Svg => WordCloudImage::Svg(document),
+        }
     }
 
     fn check_font_size(font_size: &mut f32, font_step: f32, min_font_size: f32) -> bool {
@@ -205,8 +272,14 @@ impl WordCloud {
         Rect { width: glyphs.width + self.word_margin, height: glyphs.height + self.word_margin }
     }
 
-    pub fn generate_from_text(&self, text: &str, size: WordCloudSize, scale: f32) -> RgbaImage {
-        self.generate_from_text_with_color_func(text, size, scale, random_color_rgba)
+    pub fn generate_from_text(
+        &self,
+        text: &str,
+        size: WordCloudSize,
+        scale: f32,
+        image_type: WordCloudImageType,
+    ) -> WordCloudImage {
+        self.generate_from_text_with_color_func(text, size, scale, random_color_rgba, image_type)
     }
 
     pub fn generate_from_text_with_color_func(
@@ -215,7 +288,8 @@ impl WordCloud {
         size: WordCloudSize,
         scale: f32,
         color_func: fn(&Word, &mut WyRand) -> Rgba<u8>,
-    ) -> RgbaImage {
+        image_type: WordCloudImageType,
+    ) -> WordCloudImage {
         let words = self.tokenizer.get_normalized_word_frequencies(text);
 
         let (mut summed_area_table, mut gray_buffer) = match size {
@@ -465,6 +539,7 @@ impl WordCloud {
             scale,
             self.background_color,
             color_func,
+            image_type,
         )
     }
 }

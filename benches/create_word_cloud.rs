@@ -54,6 +54,7 @@ pub fn wcloud(c: &mut Criterion) {
                 mask,
                 black_box(1.0),
                 color_func,
+                wcloud::WordCloudImageType::Png,
             )
         })
     });

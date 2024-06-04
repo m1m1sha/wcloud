@@ -19,6 +19,7 @@ clap = { version = "4.5", features = ["derive"] }
 csscolorparser = "0.6.2"
 woff2 = { git = "https://github.com/isaackd/woff2-rs.git" }
 nanorand = "0.7.0"
+base64 = "0.22"
 
 serde = { version = "1.0.164", optional = true }
 serde_derive = { version = "1.0.164", optional = true }

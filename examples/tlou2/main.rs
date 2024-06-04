@@ -79,10 +79,17 @@ fn main() {
     };
 
     let now = Instant::now();
-    let word_cloud_image =
-        word_cloud.generate_from_text_with_color_func(&script_text, mask, 1.0, color_func);
+    let word_cloud_image = word_cloud.generate_from_text_with_color_func(
+        &script_text,
+        mask,
+        5.0,
+        color_func,
+        wcloud::WordCloudImageType::Png,
+    );
 
     println!("Generated in {}ms", now.elapsed().as_millis());
 
-    word_cloud_image.save("examples/tlou2/tlou2.png").expect("Unable to save image");
+    if let wcloud::WordCloudImage::Png(r) = word_cloud_image {
+        r.save("examples/tlou2/tlou2.png").expect("Failed to save WordCloud image");
+    }
 }

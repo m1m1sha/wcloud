@@ -7,7 +7,7 @@ use regex::Regex;
 use std::collections::HashSet;
 use std::fs;
 use std::io::{self, stdout, Read};
-use wcloud::{Tokenizer, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
+use wcloud::{Tokenizer, WordCloud, WordCloudImageType, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -81,16 +81,16 @@ struct Args {
     exclude_words: Option<String>,
 
     /// Sets the output file for the word cloud image
-    #[arg(short, long)]
-    output: Option<String>,
+    #[arg(short, long, default_value_t = String::from("word_cloud"))]
+    output: String,
 
     /// Sets the font used for the word cloud
     #[arg(short, long)]
     font: Option<String>,
 
     /// Sets the output format for the word cloud image (png, svg)
-    #[arg(long)]
-    format: Option<String>,
+    #[arg(long, default_value_t = String::from("png"))]
+    format: String,
 }
 
 fn main() {
@@ -190,19 +190,21 @@ fn main() {
         buffer
     };
 
-    let word_cloud_image = word_cloud.generate_from_text(&text, word_cloud_size, args.scale);
+    let word_cloud_image = word_cloud.generate_from_text(
+        &text,
+        word_cloud_size,
+        args.scale,
+        WordCloudImageType::from(args.format.clone()),
+    );
 
-    if let Some(file_path) = args.output {
-        word_cloud_image.save(file_path).expect("Failed to save WordCloud image");
-    } else {
-        // TODO: support SVG output
-        let encoder = PngEncoder::new(stdout());
+    let output = format!("{}.{}", args.output, args.format);
 
-        let width = word_cloud_image.width();
-        let height = word_cloud_image.height();
-
-        encoder
-            .write_image(&word_cloud_image, width, height, ColorType::Rgb8.into())
-            .expect("Failed to save word_cloud image");
+    match word_cloud_image {
+        wcloud::WordCloudImage::Png(r) => {
+            r.save(output).expect("Failed to save WordCloud image");
+        }
+        wcloud::WordCloudImage::Svg(d) => {
+            svg::save(output, &d).unwrap();
+        }
     }
 }
