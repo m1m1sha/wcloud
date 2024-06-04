@@ -13,8 +13,9 @@ debug = true
 regex = "1.7.3"
 ab_glyph = "0.2.20"
 image = "0.25"
+svg = "0.17"
 palette = "0.7"
-clap = "3.2.23"
+clap = { version = "4.5", features = ["derive"] }
 csscolorparser = "0.6.2"
 woff2 = { git = "https://github.com/isaackd/woff2-rs.git" }
 nanorand = "0.7.0"

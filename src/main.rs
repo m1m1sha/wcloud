@@ -1,5 +1,5 @@
 use ab_glyph::FontVec;
-use clap::{App, Arg};
+use clap::{arg, command, Parser};
 use csscolorparser::Color;
 use image::codecs::png::PngEncoder;
 use image::{ColorType, ImageEncoder, Rgba};
@@ -9,116 +9,113 @@ use std::fs;
 use std::io::{self, stdout, Read};
 use wcloud::{Tokenizer, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Specifies the file of words to build the word cloud with
+    #[arg(short, long)]
+    text: Option<String>,
+
+    /// Sets a custom regex to tokenize words with
+    #[arg(short, long)]
+    regex: Option<String>,
+
+    /// Sets the width of the word cloud
+    #[arg(short, long, default_value_t = 400)]
+    width: u32,
+
+    /// Sets the height of the word cloud
+    #[arg(short, long, default_value_t = 200)]
+    height: u32,
+
+    /// Sets the scale of the final word cloud image, relative to the width and height
+    #[arg(short, long, default_value_t = 1.0)]
+    scale: f32,
+
+    /// Sets the background color of the word cloud image
+    #[arg(short, long)]
+    background: Option<String>,
+
+    /// Sets the spacing between words
+    #[arg(short, long)]
+    margin: Option<u32>,
+
+    /// Sets the maximum number of words to display in the word cloud
+    #[arg(short, long)]
+    max_words: Option<u32>,
+
+    /// Sets the minimum font size for words
+    #[arg(short, long)]
+    min_font_size: Option<f32>,
+
+    /// Sets the maximum font size for words
+    #[arg(short, long)]
+    max_font_size: Option<f32>,
+
+    /// Sets the randomness seed for the word cloud for reproducible word clouds
+    #[arg(short, long)]
+    random_seed: Option<u64>,
+
+    /// Whether to repeat words until the maximum word count is reached
+    #[arg(short, long, default_value_t = false)]
+    repeat: bool,
+
+    /// Sets the amount to decrease the font size by when no space can be found for a word
+    #[arg(short, long)]
+    font_step: Option<f32>,
+
+    /// Sets the chance that words are rotated (0.0 - not at all, 1.0 - every time) [0.1]
+    #[arg(short, long)]
+    rotate_chance: Option<f64>,
+
+    /// Sets how much of an impact word frequency has on the font size of the word (0.0 - 1.0) [0.5]
+    #[arg(short, long)]
+    relative_scaling: Option<f32>,
+
+    /// Sets the boolean mask image for the word cloud shape. Any color other than black (#000) means there is no space
+    #[arg(short, long)]
+    mask: Option<String>,
+
+    /// A newline-separated list of words to exclude from the word cloud
+    #[arg(short, long)]
+    exclude_words: Option<String>,
+
+    /// Sets the output file for the word cloud image
+    #[arg(short, long)]
+    output: Option<String>,
+
+    /// Sets the font used for the word cloud
+    #[arg(short, long)]
+    font: Option<String>,
+
+    /// Sets the output format for the word cloud image (png, svg)
+    #[arg(short, long)]
+    format: Option<String>,
+}
 
 fn main() {
-    let matches = App::new("wcloud")
-        .version(VERSION)
-        .author("isaackd <afrmtbl@gmail.com>")
-        .about("Generate word clouds!")
-        .arg(Arg::with_name("text")
-            .long("text")
-            .value_name("FILE")
-            .help("Specifies the file of words to build the word cloud with"))
-        .arg(Arg::with_name("regex")
-            .long("regex")
-            .value_name("REGEX")
-            .help("Sets a custom regex to tokenize words with"))
-        .arg(Arg::with_name("width")
-            .long("width")
-            .value_name("NUM")
-            .help("Sets the width of the word cloud"))
-        .arg(Arg::with_name("height")
-            .long("height")
-            .value_name("NUM")
-            .help("Sets the height of the word cloud"))
-        .arg(Arg::with_name("scale")
-            .long("scale")
-            .value_name("NUM")
-            .help("Sets the scale of the final word cloud image, relative to the width and height"))
-        .arg(Arg::with_name("background-color")
-            .long("background-color")
-            .value_name("TEXT")
-            .help("Sets the background color of the word cloud image"))
-        .arg(Arg::with_name("margin")
-            .long("margin")
-            .value_name("NUM")
-            .help("Sets the spacing between words"))
-        .arg(Arg::with_name("max-words")
-            .long("max-words")
-            .value_name("NUM"))
-        .arg(Arg::with_name("min-font-size")
-            .long("min-font-size")
-            .value_name("NUM")
-            .help("Sets the minimum font size for words"))
-        .arg(Arg::with_name("max-font-size")
-            .long("max-font-size")
-            .value_name("NUM")
-            .help("Sets the maximum font size for words"))
-        .arg(Arg::with_name("random-seed")
-            .long("random-seed")
-            .value_name("NUM")
-            .help("Sets the randomness seed for the word cloud for reproducible word clouds"))
-        .arg(Arg::with_name("repeat")
-            .long("repeat")
-            .help("Whether to repeat words until the maximum word count is reached"))
-        .arg(Arg::with_name("font-step")
-            .long("font-step")
-            .value_name("NUM")
-            .help("Sets the amount to decrease the font size by when no space can be found for a word [1]"))
-        .arg(Arg::with_name("rotate-chance")
-            .long("rotate-chance")
-            .value_name("NUM")
-            .help("Sets the chance that words are rotated (0.0 - not at all, 1.0 - every time) [0.1]"))
-        .arg(Arg::with_name("relative-scaling")
-            .long("relative-scaling")
-            .value_name("NUM")
-            .help("Sets how much of an impact word frequency has on the font size of the word (0.0 - 1.0) [0.5]"))
-        .arg(Arg::with_name("mask")
-            .long("mask")
-            .value_name("FILE")
-            .help("Sets the boolean mask image for the word cloud shape. Any color other than black (#000) means there is no space"))
-        .arg(Arg::with_name("exclude-words")
-            .long("exclude-words")
-            .value_name("FILE")
-            .help("A newline-separated list of words to exclude from the word cloud"))
-        .arg(Arg::with_name("output")
-            .long("output")
-            .short('o')
-            .value_name("FILE")
-            .help("The output path of the final word cloud image"))
-        .arg(Arg::with_name("font")
-            .long("font")
-            .short('f')
-            .value_name("FILE")
-            .help("Sets the font used for the word cloud"))
-        .get_matches();
-
+    let args = Args::parse();
     let mut tokenizer = Tokenizer::default();
 
-    if matches.is_present("repeat") {
-        tokenizer = tokenizer.with_repeat(true);
-    }
+    tokenizer = tokenizer.with_repeat(args.repeat);
 
-    if let Some(max_words) = matches.value_of("max-words") {
-        let max_words = max_words.parse().expect("Max words must be a number greater than 0");
+    if let Some(max_words) = args.max_words {
         tokenizer = tokenizer.with_max_words(max_words);
     }
 
-    if let Some(regex_str) = matches.value_of("regex") {
-        let regex = match Regex::new(regex_str) {
+    if let Some(regex_str) = args.regex {
+        let regex = match Regex::new(&regex_str) {
             Ok(regex) => regex,
             Err(e) => {
                 println!("{}", e);
                 std::process::exit(1)
             }
         };
-
         tokenizer = tokenizer.with_regex(regex);
     }
 
-    let exclude_words = if let Some(exclude_words_path) = matches.value_of("exclude-words") {
-        fs::read_to_string(exclude_words_path).unwrap_or_else(|_| {
+    let exclude_words = if let Some(exclude_words_path) = args.exclude_words {
+        fs::read_to_string(exclude_words_path.clone()).unwrap_or_else(|_| {
             panic!("Unable to read exclude words file \'{}\'", exclude_words_path)
         })
     } else {
@@ -132,29 +129,16 @@ fn main() {
         tokenizer = tokenizer.with_filter(exclude_words);
     }
 
-    let word_cloud_size = match matches.value_of("mask") {
+    let word_cloud_size = match args.mask {
         Some(mask_path) => {
             let mask_image = image::open(mask_path).unwrap().into_luma8();
 
             WordCloudSize::FromMask(mask_image)
         }
-        None => {
-            let width = matches
-                .value_of("width")
-                .unwrap_or("400")
-                .parse()
-                .expect("Width must be an integer larger than 0");
-            let height = matches
-                .value_of("height")
-                .unwrap_or("200")
-                .parse()
-                .expect("Height must be an integer larger than 0");
-
-            WordCloudSize::FromDimensions { width, height }
-        }
+        None => WordCloudSize::FromDimensions { width: args.width, height: args.height },
     };
 
-    let background_color = match matches.value_of("background-color") {
+    let background_color = match args.background {
         Some(color) => {
             let col = color.parse::<Color>().unwrap_or(Color::new(0.0, 0.0, 0.0, 1.0)).to_rgba8();
 
@@ -166,69 +150,52 @@ fn main() {
     let mut word_cloud =
         WordCloud::default().with_tokenizer(tokenizer).with_background_color(background_color);
 
-    if let Some(margin) = matches.value_of("margin") {
-        word_cloud =
-            word_cloud.with_word_margin(margin.parse().expect("Margin must be a valid number"));
+    if let Some(margin) = args.margin {
+        word_cloud = word_cloud.with_word_margin(margin);
     }
 
-    if let Some(min_font_size) = matches.value_of("min-font-size") {
-        word_cloud = word_cloud.with_min_font_size(
-            min_font_size.parse().expect("The minimum font size must be a valid number"),
-        );
+    if let Some(min_font_size) = args.min_font_size {
+        word_cloud = word_cloud.with_min_font_size(min_font_size);
     }
 
-    if let Some(max_font_size) = matches.value_of("max-font-size") {
-        word_cloud = word_cloud.with_max_font_size(Some(
-            max_font_size.parse().expect("The maximum font size must be a valid number"),
-        ));
+    if let Some(max_font_size) = args.max_font_size {
+        word_cloud = word_cloud.with_max_font_size(Some(max_font_size));
     }
 
-    if let Some(random_seed) = matches.value_of("random-seed") {
-        word_cloud = word_cloud
-            .with_rng_seed(random_seed.parse().expect("The random seed must be a valid number"));
+    if let Some(random_seed) = args.random_seed {
+        word_cloud = word_cloud.with_rng_seed(random_seed);
     }
 
-    if let Some(font_step) = matches.value_of("font-step") {
-        word_cloud = word_cloud
-            .with_font_step(font_step.parse().expect("The random seed must be a valid number"));
+    if let Some(font_step) = args.font_step {
+        word_cloud = word_cloud.with_font_step(font_step);
     }
 
-    if let Some(rotate_chance) = matches.value_of("rotate-chance") {
-        word_cloud = word_cloud.with_word_rotate_chance(
-            rotate_chance
-                .parse()
-                .expect("The rotate chance must be a number between 0 and 1 (default: 0.10)"),
-        );
+    if let Some(rotate_chance) = args.rotate_chance {
+        word_cloud = word_cloud.with_word_rotate_chance(rotate_chance);
     }
 
-    if let Some(font_path) = matches.value_of("font") {
+    if let Some(font_path) = args.font {
         let font_file = fs::read(font_path).expect("Unable to read font file");
 
         word_cloud = word_cloud
             .with_font(FontVec::try_from_vec(font_file).expect("Font file may be invalid"));
     }
 
-    let scale = matches
-        .value_of("scale")
-        .unwrap_or("1.0")
-        .parse()
-        .expect("Scale must be a number between 0 and 100");
-
-    let text = if let Some(text_file_path) = matches.value_of("text") {
-        fs::read_to_string(text_file_path)
+    let text = if let Some(text_file_path) = args.text {
+        fs::read_to_string(text_file_path.clone())
             .unwrap_or_else(|_| panic!("Unable to read text file \'{}\'", text_file_path))
     } else {
         let mut buffer = String::new();
         io::stdin().read_to_string(&mut buffer).expect("Unable to read stdin");
-
         buffer
     };
 
-    let word_cloud_image = word_cloud.generate_from_text(&text, word_cloud_size, scale);
+    let word_cloud_image = word_cloud.generate_from_text(&text, word_cloud_size, args.scale);
 
-    if let Some(file_path) = matches.value_of("output") {
+    if let Some(file_path) = args.output {
         word_cloud_image.save(file_path).expect("Failed to save WordCloud image");
     } else {
+        // TODO: support SVG output
         let encoder = PngEncoder::new(stdout());
 
         let width = word_cloud_image.width();
