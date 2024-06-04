@@ -1,5 +1,5 @@
 use image::{ImageFormat, Rgba};
-use nanorand::{Rng, WyRand};
+use nanorand::WyRand;
 use palette::{Hsl, IntoColor, Pixel, Srgb};
 use std::collections::HashSet;
 use wcloud::{Tokenizer, Word, WordCloud, WordCloudSize, DEFAULT_EXCLUDE_WORDS_TEXT};
@@ -24,7 +24,7 @@ fn main() {
     let tokenizer =
         Tokenizer::default().with_max_words(1000).with_filter(filter).with_min_word_length(2);
 
-    let max_font_size = Some(150.0);
+    let _max_font_size = Some(150.0);
 
     let word_cloud = WordCloud::default()
         .with_tokenizer(tokenizer)
@@ -45,7 +45,7 @@ fn main() {
         // let lightness = rng.generate_range(40..100);
 
         // let saturation = word.frequency / 100.0;
-        let freq = (word.frequency * 100.0) as u8;
+        let _freq = (word.frequency * 100.0) as u8;
 
         // let saturation = match freq {
         //     90..=100 => word.frequency,
@@ -56,7 +56,7 @@ fn main() {
         //     _ => 0.2,
         // };
 
-        let saturation = (200.0 - word.index as f32) / 200.0;
+        let _saturation = (200.0 - word.index as f32) / 200.0;
         let saturation = match word.index {
             0..=10 => 1.0,
             11..=20 => 0.9,
