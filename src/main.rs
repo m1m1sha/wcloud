@@ -17,67 +17,67 @@ struct Args {
     text: Option<String>,
 
     /// Sets a custom regex to tokenize words with
-    #[arg(short, long)]
+    #[arg(long)]
     regex: Option<String>,
 
     /// Sets the width of the word cloud
-    #[arg(short, long, default_value_t = 400)]
+    #[arg(long, default_value_t = 400)]
     width: u32,
 
     /// Sets the height of the word cloud
-    #[arg(short, long, default_value_t = 200)]
+    #[arg(long, default_value_t = 200)]
     height: u32,
 
     /// Sets the scale of the final word cloud image, relative to the width and height
-    #[arg(short, long, default_value_t = 1.0)]
+    #[arg(long, default_value_t = 1.0)]
     scale: f32,
 
     /// Sets the background color of the word cloud image
-    #[arg(short, long)]
+    #[arg(long)]
     background: Option<String>,
 
     /// Sets the spacing between words
-    #[arg(short, long)]
+    #[arg(long)]
     margin: Option<u32>,
 
     /// Sets the maximum number of words to display in the word cloud
-    #[arg(short, long)]
+    #[arg(long)]
     max_words: Option<u32>,
 
     /// Sets the minimum font size for words
-    #[arg(short, long)]
+    #[arg(long)]
     min_font_size: Option<f32>,
 
     /// Sets the maximum font size for words
-    #[arg(short, long)]
+    #[arg(long)]
     max_font_size: Option<f32>,
 
     /// Sets the randomness seed for the word cloud for reproducible word clouds
-    #[arg(short, long)]
+    #[arg(long)]
     random_seed: Option<u64>,
 
     /// Whether to repeat words until the maximum word count is reached
-    #[arg(short, long, default_value_t = false)]
+    #[arg(long, default_value_t = false)]
     repeat: bool,
 
     /// Sets the amount to decrease the font size by when no space can be found for a word
-    #[arg(short, long)]
+    #[arg(long)]
     font_step: Option<f32>,
 
     /// Sets the chance that words are rotated (0.0 - not at all, 1.0 - every time) [0.1]
-    #[arg(short, long)]
+    #[arg(long)]
     rotate_chance: Option<f64>,
 
     /// Sets how much of an impact word frequency has on the font size of the word (0.0 - 1.0) [0.5]
-    #[arg(short, long)]
+    #[arg(long)]
     relative_scaling: Option<f32>,
 
     /// Sets the boolean mask image for the word cloud shape. Any color other than black (#000) means there is no space
-    #[arg(short, long)]
+    #[arg(long)]
     mask: Option<String>,
 
     /// A newline-separated list of words to exclude from the word cloud
-    #[arg(short, long)]
+    #[arg(long)]
     exclude_words: Option<String>,
 
     /// Sets the output file for the word cloud image
@@ -89,7 +89,7 @@ struct Args {
     font: Option<String>,
 
     /// Sets the output format for the word cloud image (png, svg)
-    #[arg(short, long)]
+    #[arg(long)]
     format: Option<String>,
 }
 
